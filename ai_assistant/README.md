@@ -69,12 +69,21 @@
 
 ---
 
+## 🚂 상시 운영 (Railway 배포)
+
+PC 꺼놓아도 봇이 24/7 돌아가게 하려면 Railway 에 올리세요. **월 $10~15** 수준.
+👉 상세 가이드: [docs/RAILWAY.md](docs/RAILWAY.md)
+
+---
+
 ## 구조
 
 ```
 ai_assistant/
 ├── start_windows.bat        ← Windows 더블클릭 실행
 ├── start_mac.command        ← macOS 더블클릭 실행
+├── Dockerfile               ← Railway/Docker 배포용
+├── railway.json             ← Railway 설정
 ├── main.py                  Telegram 봇 진입점
 ├── agent.py                 Claude API + tool use 루프
 ├── gcal.py                  Google Calendar 래퍼
@@ -83,7 +92,9 @@ ai_assistant/
 ├── authenticate_gcal.py     Google OAuth 최초 1회 설정
 ├── requirements.txt
 ├── .env.example
-└── README.md
+├── README.md
+└── docs/
+    └── RAILWAY.md           ← Railway 배포 가이드 (한글)
 ```
 
 ---

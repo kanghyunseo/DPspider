@@ -9,6 +9,7 @@ if __name__ == "__main__" and __package__ in (None, ""):
 
 import asyncio
 import logging
+from pathlib import Path
 
 from telegram import Update
 from telegram.constants import ChatAction
@@ -104,7 +105,26 @@ async def handle_message(
         await update.message.reply_text(response[i : i + 4000])
 
 
+def _materialize_secrets() -> None:
+    """Write JSON env-var secrets to file if set (for cloud deployments).
+
+    Supports Railway / Fly.io / Docker where mounting files is inconvenient.
+    If GOOGLE_TOKEN_JSON is set and token file doesn't exist yet, write it.
+    Same for GOOGLE_CREDENTIALS_JSON.
+    """
+    for content, path in (
+        (config.GOOGLE_TOKEN_JSON, config.GOOGLE_TOKEN_PATH),
+        (config.GOOGLE_CREDENTIALS_JSON, config.GOOGLE_CREDENTIALS_PATH),
+    ):
+        if content and not Path(path).exists():
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+            Path(path).write_text(content)
+            logger.info("Materialized credential file at %s", path)
+
+
 def main() -> None:
+    _materialize_secrets()
+    Path(config.DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     storage.init_db(config.DB_PATH)
     service = get_service(config.GOOGLE_CREDENTIALS_PATH, config.GOOGLE_TOKEN_PATH)
     calendar = Calendar(service, config.CALENDAR_ID, config.DEFAULT_TIMEZONE)

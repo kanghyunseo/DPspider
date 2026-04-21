@@ -38,9 +38,21 @@ def main() -> None:
 
     flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
     creds = flow.run_local_server(port=0)
+    token_content = creds.to_json()
     with open(token_path, "w") as f:
-        f.write(creds.to_json())
+        f.write(token_content)
+
+    print()
+    print("=" * 72)
     print(f"✅ Token saved to {token_path}")
+    print("=" * 72)
+    print()
+    print("☁️  Railway 등 클라우드 배포용 — 아래 JSON 전체(한 줄)를 복사해서")
+    print("    GOOGLE_TOKEN_JSON 환경변수에 붙여넣으세요:")
+    print()
+    print("-" * 72)
+    print(token_content)
+    print("-" * 72)
 
 
 if __name__ == "__main__":

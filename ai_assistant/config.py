@@ -38,6 +38,13 @@ GOOGLE_CREDENTIALS_PATH = (
     os.environ.get("GOOGLE_CREDENTIALS_PATH") or _pkg_file("credentials.json")
 )
 GOOGLE_TOKEN_PATH = os.environ.get("GOOGLE_TOKEN_PATH") or _pkg_file("token.json")
+
+# Optional: raw JSON contents passed via env var (for cloud deployments
+# like Railway where mounting files is inconvenient). If set, main.py
+# materializes these to the corresponding *_PATH at startup.
+GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+GOOGLE_TOKEN_JSON = os.environ.get("GOOGLE_TOKEN_JSON")
+
 CALENDAR_ID = os.environ.get("CALENDAR_ID", "primary")
 DB_PATH = os.environ.get("DB_PATH") or _pkg_file("assistant.db")
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5")
