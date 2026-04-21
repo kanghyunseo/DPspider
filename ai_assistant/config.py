@@ -51,19 +51,43 @@ CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5")
 HISTORY_LIMIT = int(os.environ.get("HISTORY_LIMIT", "40"))
 
 # --- Google Drive (optional) ---
-# If set, weekly reports are uploaded into this Drive folder. If not set,
+# If set, reports are uploaded into this Drive folder. If not set,
 # they go to the root of My Drive.
 DRIVE_FOLDER_ID = os.environ.get("DRIVE_FOLDER_ID")
 
-# --- Weekly report scheduler ---
-# Cron-style: day_of_week and hour (24h) in DEFAULT_TIMEZONE.
+# --- Airwallex (optional, for weekly finance summary) ---
+# https://www.airwallex.com/docs → API Keys (Client ID + API Key)
+# If unset, the weekly report simply omits the finance section.
+AIRWALLEX_CLIENT_ID = os.environ.get("AIRWALLEX_CLIENT_ID")
+AIRWALLEX_API_KEY = os.environ.get("AIRWALLEX_API_KEY")
+AIRWALLEX_BASE_URL = os.environ.get(
+    "AIRWALLEX_BASE_URL", "https://api.airwallex.com"
+)
+
+# --- Weekly report scheduler (calendar + finance) ---
 # Default: every Friday 17:00 KST.
 WEEKLY_REPORT_DAY = os.environ.get("WEEKLY_REPORT_DAY", "fri")
 WEEKLY_REPORT_HOUR = int(os.environ.get("WEEKLY_REPORT_HOUR", "17"))
 WEEKLY_REPORT_MINUTE = int(os.environ.get("WEEKLY_REPORT_MINUTE", "0"))
 
-# Telegram chat id to deliver the weekly report to. Defaults to the
-# first entry of ALLOWED_TELEGRAM_USER_IDS (private chat with owner).
+# --- Trends report scheduler (국가별 F&B 트렌드 브리프) ---
+# Default: every Monday 09:00 KST.
+TRENDS_REPORT_DAY = os.environ.get("TRENDS_REPORT_DAY", "mon")
+TRENDS_REPORT_HOUR = int(os.environ.get("TRENDS_REPORT_HOUR", "9"))
+TRENDS_REPORT_MINUTE = int(os.environ.get("TRENDS_REPORT_MINUTE", "0"))
+
+# Countries to research for the weekly trends brief.
+# Comma-separated names as they should appear in output.
+TREND_COUNTRIES = [
+    c.strip()
+    for c in os.environ.get(
+        "TREND_COUNTRIES", "싱가포르,베트남,일본,미국,인도네시아"
+    ).split(",")
+    if c.strip()
+]
+
+# Telegram chat id to deliver reports to. Defaults to the first entry
+# of ALLOWED_TELEGRAM_USER_IDS (private chat with owner).
 _WEEKLY_REPORT_CHAT_ID_RAW = os.environ.get("WEEKLY_REPORT_CHAT_ID")
 WEEKLY_REPORT_CHAT_ID = (
     int(_WEEKLY_REPORT_CHAT_ID_RAW)

@@ -83,8 +83,11 @@ git push origin claude/restaurant-ai-task-manager-wzs7Q
 | 키 | 값 | 언제 필요? |
 |---|---|---|
 | `DRIVE_FOLDER_ID` | Drive 폴더 ID | 리포트를 특정 폴더에 저장하고 싶을 때 |
+| `AIRWALLEX_CLIENT_ID` + `AIRWALLEX_API_KEY` | Airwallex API Keys | 주간 리포트에 수익/지출 포함시 |
+| `TREND_COUNTRIES` | `싱가포르,베트남,...` | F&B 트렌드 조사 국가 변경 |
 | `WEEKLY_REPORT_CHAT_ID` | Telegram chat id | 본인 외 채팅방(팀 단체방 등)에 전송시 |
 | `WEEKLY_REPORT_DAY` / `_HOUR` / `_MINUTE` | `fri` / `17` / `0` | 주간 리포트 시각 변경시 |
+| `TRENDS_REPORT_DAY` / `_HOUR` / `_MINUTE` | `mon` / `9` / `0` | 트렌드 브리프 시각 변경시 |
 
 > ⚠️ `GOOGLE_TOKEN_JSON` 은 **값 전체를 따옴표 없이** 붙여넣으세요. Railway 가 자동으로 처리합니다.
 >

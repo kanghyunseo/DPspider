@@ -12,7 +12,8 @@ from zoneinfo import ZoneInfo
 
 import anthropic
 
-from . import config
+from . import config, finance_report
+from .airwallex_client import Airwallex
 from .gcal import Calendar
 from .gdrive import Drive
 
@@ -56,7 +57,9 @@ def _week_bounds(now: datetime) -> tuple[datetime, datetime]:
     return monday, sunday_end
 
 
-def generate(calendar: Calendar, drive: Drive) -> ReportResult:
+def generate(
+    calendar: Calendar, drive: Drive, airwallex: Airwallex | None = None
+) -> ReportResult:
     tz = ZoneInfo(config.DEFAULT_TIMEZONE)
     now = datetime.now(tz)
     monday, sunday_end = _week_bounds(now)
@@ -74,8 +77,6 @@ def generate(calendar: Calendar, drive: Drive) -> ReportResult:
         summary_md = "이번주는 등록된 일정이 없습니다."
     else:
         client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-        # Use a stronger model for report quality; chat uses whatever
-        # CLAUDE_MODEL is set to.
         report_model = "claude-sonnet-4-6"
         response = client.messages.create(
             model=report_model,
@@ -97,13 +98,20 @@ def generate(calendar: Calendar, drive: Drive) -> ReportResult:
             b.text for b in response.content if b.type == "text"
         ).strip()
 
+    # Optional: Airwallex finance section
+    finance_md = ""
+    if airwallex is not None:
+        summary = finance_report.generate_markdown(airwallex, monday, sunday_end)
+        finance_md = "\n\n---\n\n" + summary.markdown
+
     doc_title = f"주간리포트 {monday.strftime('%Y.%m.%d')}~{sunday_end.strftime('%m.%d')}"
     doc_body = (
         f"# {doc_title}\n\n"
         f"**작성 시각:** {now.strftime('%Y-%m-%d %H:%M')} KST\n"
         f"**일정 수:** {len(events)}건\n\n"
         f"---\n\n"
-        f"{summary_md}\n"
+        f"{summary_md}"
+        f"{finance_md}\n"
     )
 
     uploaded = drive.upload_markdown_as_doc(doc_title, doc_body)

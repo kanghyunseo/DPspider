@@ -23,8 +23,9 @@ from telegram.ext import (
     filters,
 )
 
-from . import config, storage, weekly_report
+from . import config, storage, trends_report, weekly_report
 from .agent import Assistant
+from .airwallex_client import Airwallex
 from .gcal import Calendar, get_service as get_calendar_service
 from .gdrive import Drive, get_service as get_drive_service
 
@@ -57,9 +58,9 @@ async def start_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         "안녕하세요 팀장님. 올에프인비 업무 비서입니다.\n\n"
         "💬 자연어로 일정을 말씀해주세요.\n"
         "예) 내일 오후 3시에 싱가포르 매장 리뷰 미팅 1시간 잡아줘\n"
-        "예) 이번주 일정 다 보여줘\n"
-        "예) 금요일 2시 회의를 3시로 미뤄줘\n\n"
-        "📋 /report — 주간 리포트 즉시 생성 (금요일 17시 자동)\n"
+        "예) 이번주 일정 다 보여줘\n\n"
+        "📋 /report — 주간 리포트 즉시 생성 (금 17시 자동)\n"
+        "🌏 /trends — F&B 트렌드 브리프 즉시 생성 (월 9시 자동)\n"
         "🧹 /clear — 대화 기록 초기화\n"
         "❓ /help — 도움말"
     )
@@ -70,7 +71,9 @@ async def help_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         "명령어:\n"
         "/start - 시작 안내\n"
         "/clear - 대화 기록 초기화\n"
-        "/report - 이번주 주간 리포트 즉시 생성\n"
+        "/report - 이번주 주간 리포트 즉시 생성 (일정 + Airwallex 자금)\n"
+        "/trends - 국가별 F&B 트렌드 브리프 즉시 생성\n"
+        "          (사용예: /trends 싱가포르 베트남)\n"
         "/help - 이 도움말\n\n"
         "그 외 모든 메시지는 업무 지시로 처리됩니다."
     )
@@ -97,6 +100,37 @@ async def report_cmd(
     except Exception as e:
         logger.exception("Manual /report failed")
         await update.message.reply_text(f"❌ 리포트 생성 실패: {e}")
+
+
+async def trends_cmd(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    user = update.effective_user
+    if not is_authorized(user.id):
+        return
+    # Allow override: "/trends 싱가포르 베트남 일본"
+    override = context.args
+    countries = override if override else config.TREND_COUNTRIES
+    if not countries:
+        await update.message.reply_text(
+            "❌ 조사할 국가를 지정하세요.\n"
+            "예) /trends 싱가포르 베트남\n"
+            "또는 TREND_COUNTRIES 환경변수 설정"
+        )
+        return
+    await update.message.reply_text(
+        f"🌏 F&B 트렌드 조사 중... (30초~2분 소요)\n대상: {', '.join(countries)}"
+    )
+    await update.message.chat.send_action(ChatAction.TYPING)
+    try:
+        await _deliver_trends_report(
+            context.application,
+            countries=countries,
+            chat_id=update.effective_chat.id,
+        )
+    except Exception as e:
+        logger.exception("Manual /trends failed")
+        await update.message.reply_text(f"❌ 트렌드 리포트 실패: {e}")
 
 
 async def _process_text(
@@ -145,11 +179,12 @@ async def _deliver_weekly_report(
 
     calendar: Calendar = application.bot_data["calendar"]
     drive: Drive = application.bot_data["drive"]
+    airwallex: Airwallex | None = application.bot_data.get("airwallex")
 
     loop = asyncio.get_running_loop()
     try:
         result = await loop.run_in_executor(
-            None, weekly_report.generate, calendar, drive
+            None, weekly_report.generate, calendar, drive, airwallex
         )
     except Exception as e:
         logger.exception("Weekly report generation failed")
@@ -158,20 +193,59 @@ async def _deliver_weekly_report(
         )
         return
 
+    finance_tag = " + 💰자금" if airwallex else ""
     msg = (
-        f"📋 *주간 리포트 업로드 완료*\n\n"
+        f"📋 주간 리포트 업로드 완료{finance_tag}\n\n"
         f"📅 {result.week_label}\n"
         f"📝 일정 {result.event_count}건\n"
         f"🔗 {result.doc_link}\n\n"
         f"— 미리보기 —\n{result.summary_preview}"
     )
-    # Telegram markdown is fragile; send plain with link
+    await application.bot.send_message(chat_id=target_chat_id, text=msg)
+
+
+async def _deliver_trends_report(
+    application: Application,
+    countries: list[str],
+    chat_id: int | None = None,
+) -> None:
+    target_chat_id = chat_id or config.WEEKLY_REPORT_CHAT_ID
+    if not target_chat_id:
+        logger.error("No chat id for trends report.")
+        return
+
+    drive: Drive = application.bot_data["drive"]
+
+    loop = asyncio.get_running_loop()
+    try:
+        result = await loop.run_in_executor(
+            None, trends_report.generate, drive, countries
+        )
+    except Exception as e:
+        logger.exception("Trends report generation failed")
+        await application.bot.send_message(
+            chat_id=target_chat_id, text=f"❌ 트렌드 리포트 실패: {e}"
+        )
+        return
+
+    msg = (
+        f"🌏 F&B 트렌드 브리프 업로드 완료\n\n"
+        f"📅 {result.period_label}\n"
+        f"🗺️  대상국가: {', '.join(result.countries)}\n"
+        f"🔗 {result.doc_link}\n\n"
+        f"— 미리보기 —\n{result.summary_preview}"
+    )
     await application.bot.send_message(chat_id=target_chat_id, text=msg)
 
 
 async def _scheduled_weekly_report(application: Application) -> None:
     logger.info("Running scheduled weekly report")
     await _deliver_weekly_report(application)
+
+
+async def _scheduled_trends_report(application: Application) -> None:
+    logger.info("Running scheduled trends report")
+    await _deliver_trends_report(application, countries=config.TREND_COUNTRIES)
 
 
 def _materialize_secrets() -> None:
@@ -204,16 +278,39 @@ async def _post_init(application: Application) -> None:
         misfire_grace_time=60 * 60 * 12,
         coalesce=True,
     )
+    if config.TREND_COUNTRIES:
+        scheduler.add_job(
+            _scheduled_trends_report,
+            CronTrigger(
+                day_of_week=config.TRENDS_REPORT_DAY,
+                hour=config.TRENDS_REPORT_HOUR,
+                minute=config.TRENDS_REPORT_MINUTE,
+            ),
+            args=[application],
+            id="trends_report",
+            replace_existing=True,
+            misfire_grace_time=60 * 60 * 12,
+            coalesce=True,
+        )
     scheduler.start()
     application.bot_data["scheduler"] = scheduler
     logger.info(
-        "Scheduled weekly report: every %s at %02d:%02d %s (chat_id=%s)",
+        "Scheduled weekly report: %s %02d:%02d %s (chat_id=%s)",
         config.WEEKLY_REPORT_DAY,
         config.WEEKLY_REPORT_HOUR,
         config.WEEKLY_REPORT_MINUTE,
         config.DEFAULT_TIMEZONE,
         config.WEEKLY_REPORT_CHAT_ID,
     )
+    if config.TREND_COUNTRIES:
+        logger.info(
+            "Scheduled trends report: %s %02d:%02d %s, countries=%s",
+            config.TRENDS_REPORT_DAY,
+            config.TRENDS_REPORT_HOUR,
+            config.TRENDS_REPORT_MINUTE,
+            config.DEFAULT_TIMEZONE,
+            ", ".join(config.TREND_COUNTRIES),
+        )
 
 
 def main() -> None:
@@ -231,6 +328,14 @@ def main() -> None:
     drive = Drive(drive_service, config.DRIVE_FOLDER_ID)
     assistant = Assistant(calendar)
 
+    airwallex = None
+    if config.AIRWALLEX_CLIENT_ID and config.AIRWALLEX_API_KEY:
+        airwallex = Airwallex(
+            client_id=config.AIRWALLEX_CLIENT_ID,
+            api_key=config.AIRWALLEX_API_KEY,
+            base_url=config.AIRWALLEX_BASE_URL,
+        )
+
     app = (
         Application.builder()
         .token(config.TELEGRAM_BOT_TOKEN)
@@ -240,19 +345,24 @@ def main() -> None:
     app.bot_data["assistant"] = assistant
     app.bot_data["calendar"] = calendar
     app.bot_data["drive"] = drive
+    app.bot_data["airwallex"] = airwallex
 
     app.add_handler(CommandHandler("start", start_cmd))
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("clear", clear_cmd))
     app.add_handler(CommandHandler("report", report_cmd))
+    app.add_handler(CommandHandler("trends", trends_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     logger.info(
-        "Bot starting (model=%s, calendar=%s, tz=%s, drive_folder=%s)",
+        "Bot starting (model=%s, calendar=%s, tz=%s, drive_folder=%s, "
+        "airwallex=%s, trends=%s)",
         config.CLAUDE_MODEL,
         config.CALENDAR_ID,
         config.DEFAULT_TIMEZONE,
         config.DRIVE_FOLDER_ID or "(My Drive root)",
+        "enabled" if airwallex else "disabled",
+        "enabled" if config.TREND_COUNTRIES else "disabled",
     )
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
