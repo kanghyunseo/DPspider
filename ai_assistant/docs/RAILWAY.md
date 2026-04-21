@@ -78,7 +78,18 @@ git push origin claude/restaurant-ai-task-manager-wzs7Q
 | `CLAUDE_MODEL` | `claude-haiku-4-5` | 기본값. 변경 가능 |
 | `DEFAULT_TIMEZONE` | `Asia/Seoul` | 기본값 |
 
+선택 (기능별):
+
+| 키 | 값 | 언제 필요? |
+|---|---|---|
+| `OPENAI_API_KEY` | `sk-...` | 음성 메시지 지원 시 |
+| `DRIVE_FOLDER_ID` | Drive 폴더 ID | 리포트를 특정 폴더에 저장하고 싶을 때 |
+| `WEEKLY_REPORT_CHAT_ID` | Telegram chat id | 본인 외 채팅방(팀 단체방 등)에 전송시 |
+| `WEEKLY_REPORT_DAY` / `_HOUR` / `_MINUTE` | `fri` / `17` / `0` | 주간 리포트 시각 변경시 |
+
 > ⚠️ `GOOGLE_TOKEN_JSON` 은 **값 전체를 따옴표 없이** 붙여넣으세요. Railway 가 자동으로 처리합니다.
+>
+> ⚠️ 스코프 변경(v2 부터 Drive 추가)으로 기존 `token.json` 은 무효합니다. 로컬에서 `python authenticate_gcal.py` 재실행하여 새 JSON 을 받아 재등록하세요.
 
 ### 5. 영구 볼륨 마운트 (대화 기록 + 토큰 갱신 유지)
 

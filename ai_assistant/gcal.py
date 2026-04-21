@@ -1,30 +1,11 @@
 """Google Calendar wrapper — thin helpers around the Calendar v3 API."""
-import os
-
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
-SCOPES = ["https://www.googleapis.com/auth/calendar"]
+from .google_auth import SCOPES, load_credentials  # noqa: F401  (re-export)
 
 
 def get_service(credentials_path: str, token_path: str):
-    if not os.path.exists(token_path):
-        raise RuntimeError(
-            f"Token not found at {token_path}. "
-            f"Run `python -m ai_assistant.authenticate_gcal` first."
-        )
-    creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-    if not creds.valid:
-        if creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            with open(token_path, "w") as f:
-                f.write(creds.to_json())
-        else:
-            raise RuntimeError(
-                "Credentials invalid and cannot be refreshed. "
-                "Re-run the authenticate_gcal script."
-            )
+    creds = load_credentials(credentials_path, token_path)
     return build("calendar", "v3", credentials=creds, cache_discovery=False)
 
 
