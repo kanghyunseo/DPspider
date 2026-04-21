@@ -199,6 +199,10 @@ async def _post_init(application: Application) -> None:
         args=[application],
         id="weekly_report",
         replace_existing=True,
+        # If the machine was asleep / offline at the scheduled time,
+        # run the report as soon as it wakes up — within 12 hours.
+        misfire_grace_time=60 * 60 * 12,
+        coalesce=True,
     )
     scheduler.start()
     application.bot_data["scheduler"] = scheduler

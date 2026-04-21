@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.allfnb.assistant</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PROJECT_DIR__/.venv/bin/python</string>
+        <string>__PROJECT_DIR__/main.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_DIR__</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TZ</key>
+        <string>Asia/Seoul</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+
+    <!-- Start on login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart on crash -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Wait at least 60s between restart attempts to avoid hammering APIs on persistent errors -->
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+
+    <!-- Run at normal priority even in background -->
+    <key>ProcessType</key>
+    <string>Interactive</string>
+
+    <key>StandardOutPath</key>
+    <string>__HOME__/Library/Logs/allfnb-assistant.log</string>
+    <key>StandardErrorPath</key>
+    <string>__HOME__/Library/Logs/allfnb-assistant.log</string>
+</dict>
+</plist>
