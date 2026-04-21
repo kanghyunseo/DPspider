@@ -82,7 +82,6 @@ git push origin claude/restaurant-ai-task-manager-wzs7Q
 
 | 키 | 값 | 언제 필요? |
 |---|---|---|
-| `OPENAI_API_KEY` | `sk-...` | 음성 메시지 지원 시 |
 | `DRIVE_FOLDER_ID` | Drive 폴더 ID | 리포트를 특정 폴더에 저장하고 싶을 때 |
 | `WEEKLY_REPORT_CHAT_ID` | Telegram chat id | 본인 외 채팅방(팀 단체방 등)에 전송시 |
 | `WEEKLY_REPORT_DAY` / `_HOUR` / `_MINUTE` | `fri` / `17` / `0` | 주간 리포트 시각 변경시 |

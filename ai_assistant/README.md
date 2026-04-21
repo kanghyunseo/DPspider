@@ -1,13 +1,12 @@
 # 올에프인비 업무 비서
 
-글로벌사업팀장용 Telegram 비서. 자연어(텍스트·음성) 지시 → Claude API 분석 → Google Calendar 일정 관리 + 주간 리포트 자동 생성·Drive 업로드.
+글로벌사업팀장용 Telegram 비서. 자연어 지시 → Claude API 분석 → Google Calendar 일정 관리 + 주간 리포트 자동 생성·Drive 업로드.
 
 ## 기능
 
 | 기능 | 설명 |
 |---|---|
 | 📅 **스케줄링** | 텔레그램 메시지로 Google Calendar 일정 등록·조회·수정·삭제 |
-| 🎙️ **음성 지시** | 음성 메시지 → Whisper → 텍스트 → 자동 실행 (OpenAI API 필요) |
 | 📋 **주간 리포트** | 매주 금요일 17:00 KST 자동으로 이번주 일정 정리 → Google Docs 업로드 → 텔레그램으로 링크 전송 |
 | 📂 **Drive 연동** | 생성된 리포트는 Google Docs 로 저장 (편집 가능) |
 
@@ -17,8 +16,7 @@
 팀장 → 내일 오후 3시에 싱가포르 매장 리뷰 미팅 1시간 잡아줘
 봇   → ✅ 등록 완료: 4/22(화) 15:00–16:00 "싱가포르 매장 리뷰 미팅"
 
-팀장 → (음성) "이번주 일정 다 보여줘"
-봇   → 🎙️ 인식: 이번주 일정 다 보여줘
+팀장 → 이번주 일정 다 보여줘
 봇   → 이번주(4/21~4/27) 일정 5건:
        - 4/22(화) 15:00 싱가포르 매장 리뷰 미팅
        ...
@@ -118,16 +116,9 @@ ai_assistant/
 - `/report` — 이번주 주간 리포트 즉시 생성 (금요일 17시 자동 실행과 별개)
 - `/help` — 도움말
 
-그 외 모든 텍스트·음성 메시지는 자연어 업무 지시로 처리됩니다.
+그 외 모든 메시지는 자연어 업무 지시로 처리됩니다.
 
 ## 선택 기능 활성화
-
-### 🎙️ 음성 메시지 지원
-
-`.env` 또는 Railway Variables 에 **`OPENAI_API_KEY`** 추가.
-[platform.openai.com/api-keys](https://platform.openai.com/api-keys) 에서 발급. 비용 약 **$0.006/분** (1분 음성 = 1원 남짓).
-
-미설정시 음성 메시지는 안내 메시지로 거부됩니다.
 
 ### 📂 Google Drive 특정 폴더 지정
 
@@ -183,11 +174,9 @@ python main.py                       # 봇 실행
 
 ## 다음 단계 (로드맵)
 
-1. 음성 메시지(Whisper) → 텍스트 (텔레그램 voice 핸들러)
-2. Google Drive 연동 (주간 리포트 저장)
-3. 리뷰 수집 & 감성 분석 모듈 (Google Maps Place API)
-4. 국가별 F&B 트렌드 주간 브리프 (Web Search tool)
-5. 마케팅/회계 직영 전용 모듈 (Meta Ads API, QuickBooks 등)
+1. 리뷰 수집 & 감성 분석 모듈 (Google Maps Place API)
+2. 국가별 F&B 트렌드 주간 브리프 (Web Search tool)
+3. 마케팅/회계 직영 전용 모듈 (Meta Ads API, QuickBooks 등)
 
 ## 트러블슈팅
 

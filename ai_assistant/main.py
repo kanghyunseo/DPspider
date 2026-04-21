@@ -9,7 +9,6 @@ if __name__ == "__main__" and __package__ in (None, ""):
 
 import asyncio
 import logging
-import tempfile
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -24,7 +23,7 @@ from telegram.ext import (
     filters,
 )
 
-from . import config, storage, weekly_report, whisper_client
+from . import config, storage, weekly_report
 from .agent import Assistant
 from .gcal import Calendar, get_service as get_calendar_service
 from .gdrive import Drive, get_service as get_drive_service
@@ -56,7 +55,7 @@ async def start_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         return
     await update.message.reply_text(
         "안녕하세요 팀장님. 올에프인비 업무 비서입니다.\n\n"
-        "💬 텍스트 또는 음성으로 자연어 지시 가능합니다.\n"
+        "💬 자연어로 일정을 말씀해주세요.\n"
         "예) 내일 오후 3시에 싱가포르 매장 리뷰 미팅 1시간 잡아줘\n"
         "예) 이번주 일정 다 보여줘\n"
         "예) 금요일 2시 회의를 3시로 미뤄줘\n\n"
@@ -73,7 +72,7 @@ async def help_cmd(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         "/clear - 대화 기록 초기화\n"
         "/report - 이번주 주간 리포트 즉시 생성\n"
         "/help - 이 도움말\n\n"
-        "그 외 텍스트·음성은 모두 업무 지시로 처리됩니다."
+        "그 외 모든 메시지는 업무 지시로 처리됩니다."
     )
 
 
@@ -130,59 +129,6 @@ async def handle_message(
     except Exception as e:
         logger.exception("Failed to process text from user_id=%s", user.id)
         await update.message.reply_text(f"❌ 오류 발생: {e}")
-
-
-async def handle_voice(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
-    user = update.effective_user
-    if not is_authorized(user.id):
-        await update.message.reply_text(f"⛔ 권한 없음 (user id: {user.id})")
-        return
-
-    if not config.OPENAI_API_KEY:
-        await update.message.reply_text(
-            "🎙️ 음성 처리가 비활성화되어 있습니다.\n"
-            "OPENAI_API_KEY 환경변수를 설정하세요."
-        )
-        return
-
-    await update.message.chat.send_action(ChatAction.TYPING)
-
-    voice = update.message.voice or update.message.audio
-    if not voice:
-        return
-
-    try:
-        tg_file = await voice.get_file()
-        with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp:
-            tmp_path = Path(tmp.name)
-        try:
-            await tg_file.download_to_drive(custom_path=str(tmp_path))
-            loop = asyncio.get_running_loop()
-            transcript = await loop.run_in_executor(
-                None, whisper_client.transcribe, tmp_path
-            )
-        finally:
-            tmp_path.unlink(missing_ok=True)
-    except Exception as e:
-        logger.exception("Voice transcription failed")
-        await update.message.reply_text(f"❌ 음성 인식 실패: {e}")
-        return
-
-    if not transcript:
-        await update.message.reply_text("🎙️ 음성을 인식하지 못했습니다.")
-        return
-
-    await update.message.reply_text(f"🎙️ 인식: {transcript}")
-
-    try:
-        await _process_text(
-            context.application, user.id, update.effective_chat.id, transcript
-        )
-    except Exception as e:
-        logger.exception("Failed to process transcribed voice from user_id=%s", user.id)
-        await update.message.reply_text(f"❌ 처리 실패: {e}")
 
 
 async def _deliver_weekly_report(
@@ -295,15 +241,13 @@ def main() -> None:
     app.add_handler(CommandHandler("help", help_cmd))
     app.add_handler(CommandHandler("clear", clear_cmd))
     app.add_handler(CommandHandler("report", report_cmd))
-    app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     logger.info(
-        "Bot starting (model=%s, calendar=%s, tz=%s, voice=%s, drive_folder=%s)",
+        "Bot starting (model=%s, calendar=%s, tz=%s, drive_folder=%s)",
         config.CLAUDE_MODEL,
         config.CALENDAR_ID,
         config.DEFAULT_TIMEZONE,
-        "enabled" if config.OPENAI_API_KEY else "disabled",
         config.DRIVE_FOLDER_ID or "(My Drive root)",
     )
     app.run_polling(allowed_updates=Update.ALL_TYPES)

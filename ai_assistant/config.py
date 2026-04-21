@@ -50,11 +50,6 @@ DB_PATH = os.environ.get("DB_PATH") or _pkg_file("assistant.db")
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5")
 HISTORY_LIMIT = int(os.environ.get("HISTORY_LIMIT", "40"))
 
-# --- Voice transcription (optional) ---
-# OpenAI Whisper API. If unset, voice messages are rejected with a hint.
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-WHISPER_LANGUAGE = os.environ.get("WHISPER_LANGUAGE", "ko")
-
 # --- Google Drive (optional) ---
 # If set, weekly reports are uploaded into this Drive folder. If not set,
 # they go to the root of My Drive.
