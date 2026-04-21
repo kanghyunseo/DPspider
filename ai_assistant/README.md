@@ -15,13 +15,66 @@
        ...
 
 팀장 → 수요일 10시 회의를 금요일 같은 시간으로 옮겨줘
-봇   → ✅ "베트남 가맹 신규 계약 검토" 4/25(금) 10:00로 이동 완료
+봇   → ✅ "베트남 가맹 신규 계약 검토" 4/25(금) 10:00 로 이동 완료
 ```
+
+---
+
+## 🚀 빠른 시작 (더블클릭 실행)
+
+### Windows
+
+1. `ai_assistant` 폴더 안의 **`start_windows.bat`** 더블클릭
+2. 처음 실행시 자동으로:
+   - Python 가상환경 생성
+   - 의존성 설치
+   - `.env` 파일 메모장으로 열림 → **API 키 3개 입력 후 저장**
+3. `credentials.json` 없으면 에러 메시지와 함께 폴더 열림 → **Google OAuth JSON 을 `credentials.json` 으로 저장**
+4. 다시 `start_windows.bat` 더블클릭 → 브라우저에서 Google 인증 → 봇 실행
+
+### macOS
+
+1. `ai_assistant` 폴더 안의 **`start_mac.command`** 더블클릭
+2. **처음에 "열 수 없음" 경고가 뜨면**: 파일 우클릭 → "열기" → "열기" 재클릭 (Gatekeeper 우회, 1회만)
+3. 이후는 Windows 와 동일
+
+> **종료:** 터미널 창을 닫으면 봇도 종료됩니다.
+> **재시작:** 더블클릭 하면 됩니다. 이미 셋업된 상태라면 바로 봇이 실행됩니다.
+
+---
+
+## 최초 1회 준비물
+
+더블클릭 실행 전에 아래 3가지만 준비하세요.
+
+### 1) Telegram 봇 토큰 & 본인 User ID
+
+- 텔레그램에서 `@BotFather` 검색 → `/newbot` → 봇 이름 지정 → **토큰** 복사
+- `@userinfobot` 검색 → `/start` → 본인 **user id** 확인 (숫자)
+
+### 2) Anthropic API 키
+
+[console.anthropic.com](https://console.anthropic.com/) → Settings → API Keys → Create Key
+
+> 기본 모델은 **Claude Haiku 4.5** (저렴·빠름). 성능을 올리려면 `.env` 에서 `CLAUDE_MODEL=claude-sonnet-4-6` 또는 `claude-opus-4-7` 로 변경.
+
+### 3) Google Calendar API 인증 (`credentials.json`)
+
+1. [console.cloud.google.com](https://console.cloud.google.com/) → 새 프로젝트
+2. **APIs & Services → Library** → "Google Calendar API" 검색 → **Enable**
+3. **APIs & Services → OAuth consent screen** → External → 본인 Google 계정을 **Test users** 에 추가
+4. **APIs & Services → Credentials** → **Create Credentials → OAuth client ID**
+   - Application type: **Desktop app**
+5. 생성된 클라이언트 우측 다운로드 아이콘 → JSON 다운로드 → 이름을 **`credentials.json`** 으로 바꿔 `ai_assistant` 폴더에 저장
+
+---
 
 ## 구조
 
 ```
 ai_assistant/
+├── start_windows.bat        ← Windows 더블클릭 실행
+├── start_mac.command        ← macOS 더블클릭 실행
 ├── main.py                  Telegram 봇 진입점
 ├── agent.py                 Claude API + tool use 루프
 ├── gcal.py                  Google Calendar 래퍼
@@ -33,61 +86,9 @@ ai_assistant/
 └── README.md
 ```
 
-## 셋업
+---
 
-### 1) 파이썬 의존성 설치
-
-```bash
-cd ai_assistant
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### 2) Telegram 봇 생성
-
-1. 텔레그램에서 `@BotFather` 검색 → `/newbot`
-2. 봇 이름 지정 → 토큰 받음 (`123456:ABC-...`)
-3. 본인 user id 확인: `@userinfobot` 에 `/start`
-
-### 3) Google Calendar API 설정
-
-1. [Google Cloud Console](https://console.cloud.google.com/) → 새 프로젝트
-2. **APIs & Services → Library** → "Google Calendar API" 검색 → Enable
-3. **APIs & Services → Credentials** → Create Credentials → **OAuth client ID**
-   - Application type: **Desktop app**
-   - 이름: 아무거나
-4. 생성된 클라이언트 우측 다운로드 아이콘 → `credentials.json` 저장 → 프로젝트 루트에 배치
-5. OAuth consent screen 설정에서 본인 Google 계정을 **Test user** 로 추가 (외부 공개 앱이 아닌 경우)
-
-### 4) Anthropic API 키
-
-[Anthropic Console](https://console.anthropic.com/) → Settings → API Keys → Create Key
-
-### 5) 환경변수 설정
-
-```bash
-cp .env.example .env
-# .env 열어서 TELEGRAM_BOT_TOKEN, ANTHROPIC_API_KEY, ALLOWED_TELEGRAM_USER_IDS 채우기
-```
-
-### 6) Google OAuth 최초 인증 (1회만)
-
-```bash
-python -m ai_assistant.authenticate_gcal
-```
-
-브라우저 창이 열리면 본인 구글 계정으로 로그인·허용 → `token.json` 생성됨.
-
-### 7) 봇 실행
-
-```bash
-python -m ai_assistant.main
-```
-
-로그에 `Bot starting ...` 이 뜨면 성공. 텔레그램에서 봇에게 메시지를 보내세요.
-
-## 명령어
+## 텔레그램 명령어
 
 - `/start` — 시작 안내
 - `/clear` — 대화 기록 초기화
@@ -95,35 +96,60 @@ python -m ai_assistant.main
 
 그 외 모든 메시지는 자연어 업무 지시로 처리됩니다.
 
+---
+
+## 수동 실행 (개발자용)
+
+```bash
+cd ai_assistant
+python -m venv .venv
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env                 # .env 편집
+python authenticate_gcal.py          # Google OAuth (최초 1회)
+python main.py                       # 봇 실행
+```
+
+---
+
 ## 보안 주의
 
-- `.env`, `credentials.json`, `token.json` 은 `.gitignore` 로 제외됨 — **절대 커밋 금지**
-- `ALLOWED_TELEGRAM_USER_IDS` 는 반드시 설정 (비우면 누구나 봇 사용 가능)
-- 봇 토큰 유출시 즉시 @BotFather 에서 재발급
+- `.env`, `credentials.json`, `token.json`, `assistant.db` 는 `.gitignore` 로 제외됨 — **절대 커밋 금지**
+- `.env` 의 `ALLOWED_TELEGRAM_USER_IDS` 는 반드시 설정 (비우면 아무나 봇 사용 가능)
+- 봇 토큰 유출시 즉시 `@BotFather` 에서 재발급
 
 ## 비용 감각 (참고)
 
-Claude Opus 4.7 기준, 평균 지시 1건당:
+| 모델 | 지시 1건 비용 | 하루 50건 → 월 |
+|---|---|---|
+| **claude-haiku-4-5** (기본) | ~$0.005 | ~$7 |
+| claude-sonnet-4-6 | ~$0.014 | ~$21 |
+| claude-opus-4-7 | ~$0.023 | ~$35 |
 
-- 입력 ~2K 토큰 + 출력 ~500 토큰 → 약 $0.023/메시지
-- 하루 50건 사용시 월 ~$35
-
-비용을 줄이려면 `.env` 에서 `CLAUDE_MODEL=claude-sonnet-4-6` (1/2 가격) 또는 `claude-haiku-4-5` (1/5 가격) 로 변경.
+스케줄링만 한다면 Haiku로 충분합니다. 정교한 리뷰 분석/리포트 생성은 Sonnet 이상 추천.
 
 ## 다음 단계 (로드맵)
 
-1. 음성 메시지 → Whisper → 텍스트 (텔레그램 voice 핸들러 추가)
+1. 음성 메시지(Whisper) → 텍스트 (텔레그램 voice 핸들러)
 2. Google Drive 연동 (주간 리포트 저장)
 3. 리뷰 수집 & 감성 분석 모듈 (Google Maps Place API)
-4. 국가별 F&B 트렌드 주간 브리프 (Claude Web Search tool)
+4. 국가별 F&B 트렌드 주간 브리프 (Web Search tool)
 5. 마케팅/회계 직영 전용 모듈 (Meta Ads API, QuickBooks 등)
 
 ## 트러블슈팅
 
-**"Token not found"** → `python -m ai_assistant.authenticate_gcal` 실행
+**더블클릭했는데 아무 반응 없음 (Windows)** → 파일 탐색기에서 `start_windows.bat` 우클릭 → 관리자 권한으로 실행 / 또는 PowerShell 에서 `.\start_windows.bat` 실행해서 에러 확인
 
-**"insufficient authentication scopes"** → `token.json` 삭제 후 재인증
+**"열 수 없음" 경고 (Mac)** → 파일 우클릭 → "열기" → 대화상자에서 "열기"
 
-**봇이 메시지에 답 안 함** → 로그 확인. `ALLOWED_TELEGRAM_USER_IDS` 에 본인 id 있는지 체크
+**"Missing required env var: TELEGRAM_BOT_TOKEN"** → `.env` 파일이 비어있거나 토큰 미입력. 더블클릭 재실행하면 메모장 다시 열림
 
-**Telegram 403 Forbidden** → 봇 토큰 오타 또는 봇이 삭제됨
+**"Token not found"** → Google OAuth 인증이 안 됨. `ai_assistant` 폴더의 `token.json` 삭제 후 런처 재실행
+
+**"insufficient authentication scopes"** → `token.json` 삭제 후 런처 재실행하여 재인증
+
+**의존성 재설치가 필요할 때** → `ai_assistant/.venv` 폴더 통째로 삭제 후 런처 재실행
+
+**봇이 메시지에 답 안 함** → 실행창의 로그 확인. `.env` 의 `ALLOWED_TELEGRAM_USER_IDS` 에 본인 텔레그램 user id가 있는지 체크
+
+**Telegram 401/403 에러** → 봇 토큰 오타 또는 봇 삭제됨. `@BotFather` 에서 재확인

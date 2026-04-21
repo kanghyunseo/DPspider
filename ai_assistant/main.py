@@ -1,4 +1,12 @@
 """Telegram bot entry point."""
+if __name__ == "__main__" and __package__ in (None, ""):
+    import pathlib
+    import sys
+
+    _pkg_dir = pathlib.Path(__file__).resolve().parent
+    sys.path.insert(0, str(_pkg_dir.parent))
+    __package__ = _pkg_dir.name
+
 import asyncio
 import logging
 

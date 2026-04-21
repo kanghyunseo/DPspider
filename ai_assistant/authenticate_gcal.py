@@ -9,6 +9,14 @@ Prerequisites:
     3. Create OAuth 2.0 Client ID (application type: Desktop app)
     4. Download the JSON and save it as `credentials.json`
 """
+if __name__ == "__main__" and __package__ in (None, ""):
+    import pathlib
+    import sys
+
+    _pkg_dir = pathlib.Path(__file__).resolve().parent
+    sys.path.insert(0, str(_pkg_dir.parent))
+    __package__ = _pkg_dir.name
+
 import os
 
 from google_auth_oauthlib.flow import InstalledAppFlow
