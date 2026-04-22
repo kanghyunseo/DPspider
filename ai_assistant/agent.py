@@ -1,4 +1,6 @@
 """Claude-powered scheduling agent (manual tool-use loop)."""
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime

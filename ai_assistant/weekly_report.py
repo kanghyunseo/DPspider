@@ -4,6 +4,8 @@ Queries this week's Calendar events, summarizes via Claude, uploads
 the result to Google Drive as a Google Doc, and returns metadata for
 Telegram delivery.
 """
+from __future__ import annotations
+
 import json
 import logging
 from dataclasses import dataclass

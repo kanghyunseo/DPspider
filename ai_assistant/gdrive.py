@@ -1,4 +1,6 @@
 """Google Drive wrapper — upload Markdown as Google Docs."""
+from __future__ import annotations
+
 import io
 
 from googleapiclient.discovery import build

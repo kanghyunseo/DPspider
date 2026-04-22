@@ -1,4 +1,6 @@
 """Telegram bot entry point."""
+from __future__ import annotations
+
 if __name__ == "__main__" and __package__ in (None, ""):
     import pathlib
     import sys

@@ -1,4 +1,6 @@
 """Google Calendar wrapper — thin helpers around the Calendar v3 API."""
+from __future__ import annotations
+
 from googleapiclient.discovery import build
 
 from .google_auth import SCOPES, load_credentials  # noqa: F401  (re-export)

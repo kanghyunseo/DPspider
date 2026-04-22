@@ -20,13 +20,27 @@ pause_and_exit() {
 if command -v python3 >/dev/null 2>&1; then
     PYEXE="python3"
 else
-    echo "[오류] Python 3.10 이상이 설치되어 있지 않습니다."
+    echo "[오류] Python 3 가 설치되어 있지 않습니다."
     echo
     echo "설치 방법:"
     echo "  A) https://www.python.org/downloads/ 에서 설치"
-    echo "  B) 터미널에서: brew install python@3.12"
+    echo "  B) 터미널에서: xcode-select --install"
     pause_and_exit 1
 fi
+
+# --- Require Python >= 3.9 ---
+PYVER=$("$PYEXE" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+if ! "$PYEXE" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'; then
+    echo "[오류] Python $PYVER 이 설치되어 있으나, 이 봇은 Python 3.9 이상이 필요합니다."
+    echo
+    echo "설치 방법:"
+    echo "  brew install python@3.12"
+    echo "  (Homebrew 없으면: https://brew.sh 에서 설치 먼저)"
+    echo
+    echo "설치 후 터미널 재시작하고 start_mac.command 다시 더블클릭."
+    pause_and_exit 1
+fi
+echo "[OK] Python $PYVER 사용"
 
 # --- Create venv ---
 if [ ! -d ".venv" ]; then

@@ -1,4 +1,6 @@
 """국가별 F&B 트렌드 브리프 — Claude web_search 로 주간 동향 조사."""
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from datetime import datetime

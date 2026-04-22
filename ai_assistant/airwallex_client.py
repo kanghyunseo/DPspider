@@ -4,6 +4,8 @@ Auth flow: exchange (client_id, api_key) for a short-lived bearer token
 via /api/v1/authentication/login, then reuse the token until it expires.
 Docs: https://www.airwallex.com/docs/api
 """
+from __future__ import annotations
+
 import logging
 import time
 from datetime import datetime
