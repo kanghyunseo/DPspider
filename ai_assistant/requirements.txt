@@ -6,3 +6,5 @@ google-auth-httplib2>=0.2.0
 python-dotenv>=1.0.0
 apscheduler>=3.10.0
 requests>=2.31.0
+voyageai>=0.3.0
+numpy>=1.26.0

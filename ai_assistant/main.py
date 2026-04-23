@@ -34,6 +34,7 @@ from . import (
     attachment_parser,
     config,
     daily_briefing,
+    knowledge,
     monitors,
     recurring_tasks,
     storage,
@@ -835,6 +836,7 @@ def main() -> None:
     Path(config.DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     storage.init_db(config.DB_PATH)
     recurring_tasks.init_db()
+    knowledge.init_db()
 
     cal_service = get_calendar_service(
         config.GOOGLE_CREDENTIALS_PATH, config.GOOGLE_TOKEN_PATH

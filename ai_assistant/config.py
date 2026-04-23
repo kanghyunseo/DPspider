@@ -102,6 +102,10 @@ BACKUP_RETENTION_DAYS = int(os.environ.get("BACKUP_RETENTION_DAYS", "14"))
 BACKUP_HOUR = int(os.environ.get("BACKUP_HOUR", "3"))  # 03:00 KST
 BACKUP_MINUTE = int(os.environ.get("BACKUP_MINUTE", "0"))
 
+# --- Knowledge base (RAG via Voyage AI embeddings) ---
+VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY")
+VOYAGE_MODEL = os.environ.get("VOYAGE_MODEL", "voyage-3-lite")
+
 # --- Health check ---
 # UptimeRobot 같은 외부 모니터의 heartbeat URL. 비우면 비활성화.
 # 봇이 살아있으면 주기적으로 GET 호출 → 외부에서 봇 다운 감지 가능.
