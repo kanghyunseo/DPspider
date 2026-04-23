@@ -850,7 +850,6 @@ def main() -> None:
     calendar = Calendar(cal_service, config.CALENDAR_ID, config.DEFAULT_TIMEZONE)
     drive = Drive(drive_service, config.DRIVE_FOLDER_ID)
     tasks = Tasks(tasks_service)
-    assistant = Assistant(calendar, tasks)
 
     airwallex = None
     if config.AIRWALLEX_CLIENT_ID and config.AIRWALLEX_API_KEY:
@@ -859,6 +858,8 @@ def main() -> None:
             api_key=config.AIRWALLEX_API_KEY,
             base_url=config.AIRWALLEX_BASE_URL,
         )
+
+    assistant = Assistant(calendar, tasks, airwallex=airwallex)
 
     app = (
         Application.builder()
