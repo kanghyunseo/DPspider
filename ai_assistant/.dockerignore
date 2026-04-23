@@ -4,6 +4,8 @@ credentials.json
 token.json
 *.db
 .venv/
+.venv-py39-backup/
+backups/
 __pycache__/
 *.pyc
 .DS_Store
@@ -11,3 +13,9 @@ docs/
 README.md
 start_windows.bat
 start_mac.command
+*.command
+install_*.command
+uninstall_*.command
+service_logs.command
+*.plist*
+authenticate_gcal.py

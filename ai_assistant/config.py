@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 
-load_dotenv(PACKAGE_DIR / ".env")
+load_dotenv(PACKAGE_DIR / ".env", override=True)
 
 
 def _require(name: str) -> str:
@@ -65,9 +65,10 @@ AIRWALLEX_BASE_URL = os.environ.get(
 )
 
 # --- Weekly report scheduler (calendar + finance) ---
-# Default: every Friday 17:00 KST.
-WEEKLY_REPORT_DAY = os.environ.get("WEEKLY_REPORT_DAY", "fri")
-WEEKLY_REPORT_HOUR = int(os.environ.get("WEEKLY_REPORT_HOUR", "17"))
+# Default: every Monday 09:00 KST. Reports cover the PREVIOUS week
+# (last Mon 00:00 → last Sun 23:59:59).
+WEEKLY_REPORT_DAY = os.environ.get("WEEKLY_REPORT_DAY", "mon")
+WEEKLY_REPORT_HOUR = int(os.environ.get("WEEKLY_REPORT_HOUR", "9"))
 WEEKLY_REPORT_MINUTE = int(os.environ.get("WEEKLY_REPORT_MINUTE", "0"))
 
 # --- Trends report scheduler (국가별 F&B 트렌드 브리프) ---
@@ -75,6 +76,39 @@ WEEKLY_REPORT_MINUTE = int(os.environ.get("WEEKLY_REPORT_MINUTE", "0"))
 TRENDS_REPORT_DAY = os.environ.get("TRENDS_REPORT_DAY", "mon")
 TRENDS_REPORT_HOUR = int(os.environ.get("TRENDS_REPORT_HOUR", "9"))
 TRENDS_REPORT_MINUTE = int(os.environ.get("TRENDS_REPORT_MINUTE", "0"))
+
+# --- Daily briefing (every morning) ---
+# 오늘 일정 + 오늘 마감 task + 지연 task. 0/0 으로 두면 비활성화.
+DAILY_BRIEFING_HOUR = int(os.environ.get("DAILY_BRIEFING_HOUR", "9"))
+DAILY_BRIEFING_MINUTE = int(os.environ.get("DAILY_BRIEFING_MINUTE", "0"))
+DAILY_BRIEFING_ENABLED = (
+    os.environ.get("DAILY_BRIEFING_ENABLED", "true").lower() == "true"
+)
+
+# --- Meeting reminders ---
+# Calendar 일정 시작 N분 전에 텔레그램으로 알림. 0이면 비활성화.
+MEETING_REMINDER_LEAD_MINUTES = int(
+    os.environ.get("MEETING_REMINDER_LEAD_MINUTES", "30")
+)
+# 알림 체크 주기 (분). lead time 보다 작아야 함.
+MEETING_REMINDER_CHECK_INTERVAL_MINUTES = int(
+    os.environ.get("MEETING_REMINDER_CHECK_INTERVAL_MINUTES", "5")
+)
+
+# --- Backup ---
+# assistant.db, token.json, .env 매일 백업. 로컬 디렉터리.
+BACKUP_DIR = os.environ.get("BACKUP_DIR") or _pkg_file("backups")
+BACKUP_RETENTION_DAYS = int(os.environ.get("BACKUP_RETENTION_DAYS", "14"))
+BACKUP_HOUR = int(os.environ.get("BACKUP_HOUR", "3"))  # 03:00 KST
+BACKUP_MINUTE = int(os.environ.get("BACKUP_MINUTE", "0"))
+
+# --- Health check ---
+# UptimeRobot 같은 외부 모니터의 heartbeat URL. 비우면 비활성화.
+# 봇이 살아있으면 주기적으로 GET 호출 → 외부에서 봇 다운 감지 가능.
+HEALTHCHECK_URL = os.environ.get("HEALTHCHECK_URL")
+HEALTHCHECK_INTERVAL_MINUTES = int(
+    os.environ.get("HEALTHCHECK_INTERVAL_MINUTES", "5")
+)
 
 # Countries to research for the weekly trends brief.
 # Comma-separated names as they should appear in output.

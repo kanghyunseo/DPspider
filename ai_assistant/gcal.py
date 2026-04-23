@@ -25,6 +25,7 @@ class Calendar:
         description: str | None = None,
         location: str | None = None,
         attendees: list[str] | None = None,
+        recurrence: list[str] | None = None,
     ) -> dict:
         body = {
             "summary": summary,
@@ -37,6 +38,8 @@ class Calendar:
             body["location"] = location
         if attendees:
             body["attendees"] = [{"email": e} for e in attendees]
+        if recurrence:
+            body["recurrence"] = recurrence
 
         created = (
             self.service.events()

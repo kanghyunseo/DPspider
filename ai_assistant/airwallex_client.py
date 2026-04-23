@@ -96,27 +96,44 @@ class Airwallex:
     def list_transactions(
         self, from_time: datetime, to_time: datetime
     ) -> list[dict]:
-        """Paginated list of transactions in [from_time, to_time)."""
-        from_ts = int(from_time.timestamp() * 1000)
-        to_ts = int(to_time.timestamp() * 1000)
+        """List financial transactions in [from_time, to_time).
+
+        Airwallex /financial_transactions returns items newest-first and
+        ignores cursor-style pagination params on this endpoint, so we
+        page by narrowing `to_created_at` toward the oldest seen item.
+        """
+        from datetime import timedelta as _td
+
         all_items: list[dict] = []
-        page_after: str | None = None
+        seen_ids: set[str] = set()
+        upper = to_time
 
         for _ in range(50):  # hard cap to prevent runaway pagination
             params = {
-                "from_created_at_timestamp": from_ts,
-                "to_created_at_timestamp": to_ts,
-                "page_size": 100,
+                "from_created_at": from_time.isoformat(),
+                "to_created_at": upper.isoformat(),
+                "page_size": 1000,
             }
-            if page_after:
-                params["page_after"] = page_after
-
-            data = self._get("/api/v1/transactions", params=params)
+            data = self._get("/api/v1/financial_transactions", params=params)
             items = data.get("items", [])
-            all_items.extend(items)
+            new_items = [it for it in items if it.get("id") not in seen_ids]
+            if not new_items:
+                break
+            for it in new_items:
+                seen_ids.add(it.get("id"))
+            all_items.extend(new_items)
 
-            page_after = data.get("page_after")
-            if not page_after or not items:
+            if not data.get("has_more"):
+                break
+
+            # Step upper back to the oldest item's created_at to fetch next page
+            oldest = items[-1].get("created_at")
+            if not oldest:
+                break
+            try:
+                upper = datetime.fromisoformat(oldest.replace("Z", "+00:00"))
+                upper -= _td(milliseconds=1)
+            except ValueError:
                 break
 
         return all_items

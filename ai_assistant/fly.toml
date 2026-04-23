@@ -1,0 +1,24 @@
+# Fly.io app configuration for the All F&B Telegram assistant.
+# Free-tier eligible: shared-cpu-1x, 256MB RAM, 1GB volume in NRT.
+
+app = "dpspider-assistant"
+primary_region = "nrt"  # Tokyo — closest to KST users
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  TZ = "Asia/Seoul"
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+# Telegram bot uses long-polling — no inbound HTTP needed.
+# Disable HTTP service so Fly doesn't try to health-check on a port.
+[deploy]
+  strategy = "immediate"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
