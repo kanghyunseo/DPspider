@@ -166,7 +166,12 @@ def generate(
     if not has_any:
         summary_md = "지난주는 기록된 활동이 없습니다 (일정·업무 모두 0건)."
     else:
-        client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+        # Explicit 10-min timeout — default httpx layers can cut at 60s.
+        # Stream the response: more robust for long generations and avoids
+        # idle-read timeouts on the Anthropic edge.
+        client = anthropic.Anthropic(
+            api_key=config.ANTHROPIC_API_KEY, timeout=600.0
+        )
         report_model = "claude-sonnet-4-6"
         payload = {
             "week_label": week_label,
@@ -174,27 +179,43 @@ def generate(
             "events": events,
             "tasks": task_data,
         }
-        response = client.messages.create(
-            model=report_model,
-            max_tokens=4096,
-            system=REPORT_SYSTEM_PROMPT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": (
-                        f"주간 기간: {week_label} (KST)\n"
-                        f"일정 {len(events)}건 / 완료 task {completed_count}건 "
-                        f"/ 진행중 task {open_count}건 "
-                        f"(지연 {len(task_data['overdue'])}건)\n\n"
-                        f"데이터:\n"
-                        f"{json.dumps(payload, ensure_ascii=False, indent=2, default=str)}"
-                    ),
-                }
-            ],
-        )
-        summary_md = "\n".join(
-            b.text for b in response.content if b.type == "text"
-        ).strip()
+        user_msg = {
+            "role": "user",
+            "content": (
+                f"주간 기간: {week_label} (KST)\n"
+                f"일정 {len(events)}건 / 완료 task {completed_count}건 "
+                f"/ 진행중 task {open_count}건 "
+                f"(지연 {len(task_data['overdue'])}건)\n\n"
+                f"데이터:\n"
+                f"{json.dumps(payload, ensure_ascii=False, indent=2, default=str)}"
+            ),
+        }
+        last_err: Exception | None = None
+        summary_md = ""
+        for attempt in range(2):
+            try:
+                with client.messages.stream(
+                    model=report_model,
+                    max_tokens=4096,
+                    system=REPORT_SYSTEM_PROMPT,
+                    messages=[user_msg],
+                ) as stream:
+                    final = stream.get_final_message()
+                summary_md = "\n".join(
+                    b.text for b in final.content if b.type == "text"
+                ).strip()
+                break
+            except (anthropic.APITimeoutError, TimeoutError) as e:
+                last_err = e
+                logger.warning(
+                    "Weekly report Anthropic call timed out (attempt %d): %s",
+                    attempt + 1,
+                    e,
+                )
+        else:
+            raise RuntimeError(
+                f"Anthropic 응답 timeout (2회 재시도 실패): {last_err}"
+            )
 
     finance_md = ""
     if airwallex is not None:

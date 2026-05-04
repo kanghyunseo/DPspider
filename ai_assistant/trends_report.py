@@ -60,7 +60,9 @@ def generate(drive: Drive, countries: list[str]) -> TrendsResult:
         f"각 국가별로 web_search 툴을 여러 번 사용해도 좋습니다."
     )
 
-    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    client = anthropic.Anthropic(
+        api_key=config.ANTHROPIC_API_KEY, timeout=600.0
+    )
     tools = [
         {"type": "web_search_20260209", "name": "web_search"},
         {"type": "web_fetch_20260209", "name": "web_fetch"},
@@ -68,21 +70,41 @@ def generate(drive: Drive, countries: list[str]) -> TrendsResult:
 
     messages: list[dict] = [{"role": "user", "content": user_prompt}]
     final_response = None
+    container_id: str | None = None
 
     # Server-side web_search loop may hit its internal limit (10 iterations)
-    # and return pause_turn. Handle by re-sending and letting the server resume.
+    # and return pause_turn. Handle by re-sending — and crucially, when the
+    # server has spun up a code-execution container behind the scenes, we
+    # MUST echo its container.id back on resume or get a 400.
     for attempt in range(5):
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=8192,
-            system=TRENDS_SYSTEM_PROMPT,
-            tools=tools,
-            messages=messages,
-        )
+        kwargs: dict = {
+            "model": "claude-sonnet-4-6",
+            "max_tokens": 8192,
+            "system": TRENDS_SYSTEM_PROMPT,
+            "tools": tools,
+            "messages": messages,
+        }
+        if container_id:
+            kwargs["container"] = container_id
+
+        response = client.messages.create(**kwargs)
         final_response = response
 
+        # Capture container so we can resume against the same one.
+        container = getattr(response, "container", None)
+        if container is not None:
+            new_id = getattr(container, "id", None) or (
+                container.get("id") if isinstance(container, dict) else None
+            )
+            if new_id:
+                container_id = new_id
+
         if response.stop_reason == "pause_turn":
-            logger.info("Trends report: pause_turn, resuming (attempt %d)", attempt + 1)
+            logger.info(
+                "Trends report: pause_turn, resuming (attempt %d, container=%s)",
+                attempt + 1,
+                container_id,
+            )
             messages = [
                 {"role": "user", "content": user_prompt},
                 {"role": "assistant", "content": response.content},
