@@ -768,13 +768,28 @@ class Assistant:
         final_text = ""
         tool_calls_made = 0  # Track over the whole turn for hallucination check
         for _ in range(max_iterations):
-            response = self.client.messages.create(
-                model=config.CLAUDE_MODEL,
-                max_tokens=4096,
-                system=SYSTEM_PROMPT,
-                tools=self.tools,
-                messages=messages,
-            )
+            try:
+                response = self.client.messages.create(
+                    model=config.CLAUDE_MODEL,
+                    max_tokens=4096,
+                    system=SYSTEM_PROMPT,
+                    tools=self.tools,
+                    messages=messages,
+                )
+            except anthropic.BadRequestError as e:
+                # Surface "credit balance too low" as a clear, actionable
+                # message rather than letting it bubble up as a generic
+                # 400 that looks like model misbehaviour.
+                msg = str(e).lower()
+                if "credit balance" in msg or "billing" in msg:
+                    logger.error("Anthropic credit balance exhausted: %s", e)
+                    return (
+                        "💳 **Anthropic API 크레딧이 소진됐습니다.**\n\n"
+                        "https://console.anthropic.com/settings/billing 에서 "
+                        "크레딧을 충전하면 즉시 다시 작동합니다 (재시작 불필요).\n\n"
+                        "Auto-reload 설정을 켜두면 다음부터는 자동으로 충전돼요."
+                    )
+                raise
 
             messages.append(
                 {
