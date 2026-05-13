@@ -767,6 +767,7 @@ class Assistant:
 
         final_text = ""
         tool_calls_made = 0  # Track over the whole turn for hallucination check
+        hallucinated = False
         for _ in range(max_iterations):
             try:
                 response = self.client.messages.create(
@@ -824,12 +825,18 @@ class Assistant:
                         user_text[:200],
                         final_text[:300],
                     )
+                    # IMPORTANT: do NOT include the hallucinated text in
+                    # the user-facing reply OR (below) in the saved
+                    # history. Echoing "원래 응답: ✓ 완료. 등록했습니다"
+                    # back to the model in future turns trains it to
+                    # repeat the exact same hallucination pattern via
+                    # in-context learning. Replace with a sterile
+                    # message that contains zero action language.
                     final_text = (
-                        "⚠️ 시스템 오류 — 작업을 실제로 수행하지 못했는데 "
-                        "성공 메시지를 생성하려 했습니다. 다시 시도해 "
-                        "주세요. (이 오류는 자동으로 기록됩니다.)\n\n"
-                        f"원래 응답:\n{final_text}"
+                        "⚠️ 일시적 처리 오류로 요청을 완료하지 못했습니다. "
+                        "동일한 메시지를 다시 한 번 보내주세요."
                     )
+                    hallucinated = True
                 break
 
             if response.stop_reason == "tool_use":
@@ -856,8 +863,14 @@ class Assistant:
         else:
             final_text = "⚠️ 최대 처리 반복 횟수를 초과했습니다."
 
-        storage.append_message(config.DB_PATH, user_id, "user", user_text)
-        storage.append_message(
-            config.DB_PATH, user_id, "assistant", final_text or "(응답 없음)"
-        )
+        # Skip persisting the turn entirely on detected hallucinations.
+        # Reason: re-feeding the user's "register X" message + ANY assistant
+        # reply (even a sterile error one) into history can re-prime the
+        # model to hallucinate again on retry. A clean retry with no
+        # poisoned context recovers reliably.
+        if not hallucinated:
+            storage.append_message(config.DB_PATH, user_id, "user", user_text)
+            storage.append_message(
+                config.DB_PATH, user_id, "assistant", final_text or "(응답 없음)"
+            )
         return final_text or "(응답이 비어있습니다)"
