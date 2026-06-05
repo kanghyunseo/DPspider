@@ -768,15 +768,24 @@ class Assistant:
         final_text = ""
         tool_calls_made = 0  # Track over the whole turn for hallucination check
         hallucinated = False
+        # When True, the next messages.create call will be made with
+        # tool_choice={"type": "any"}, forcing the model to invoke SOME
+        # tool instead of replying with text. Used as a recovery path
+        # if Sonnet keeps skipping the create_event call.
+        force_tool_use = False
         for _ in range(max_iterations):
+            create_kwargs = {
+                "model": config.CLAUDE_MODEL,
+                "max_tokens": 4096,
+                "system": SYSTEM_PROMPT,
+                "tools": self.tools,
+                "messages": messages,
+            }
+            if force_tool_use:
+                create_kwargs["tool_choice"] = {"type": "any"}
+                force_tool_use = False  # one-shot
             try:
-                response = self.client.messages.create(
-                    model=config.CLAUDE_MODEL,
-                    max_tokens=4096,
-                    system=SYSTEM_PROMPT,
-                    tools=self.tools,
-                    messages=messages,
-                )
+                response = self.client.messages.create(**create_kwargs)
             except anthropic.BadRequestError as e:
                 # Surface "credit balance too low" as a clear, actionable
                 # message rather than letting it bubble up as a generic
@@ -825,18 +834,24 @@ class Assistant:
                         user_text[:200],
                         final_text[:300],
                     )
-                    # IMPORTANT: do NOT include the hallucinated text in
-                    # the user-facing reply OR (below) in the saved
-                    # history. Echoing "원래 응답: ✓ 완료. 등록했습니다"
-                    # back to the model in future turns trains it to
-                    # repeat the exact same hallucination pattern via
-                    # in-context learning. Replace with a sterile
-                    # message that contains zero action language.
-                    final_text = (
-                        "⚠️ 일시적 처리 오류로 요청을 완료하지 못했습니다. "
-                        "동일한 메시지를 다시 한 번 보내주세요."
-                    )
-                    hallucinated = True
+                    # Recovery path: discard the hallucinated assistant
+                    # turn from the in-flight `messages` and retry with
+                    # tool_choice forced to "any" — the model must now
+                    # invoke SOME tool. Add an explicit reminder turn so
+                    # the model knows why it's being constrained.
+                    messages.pop()  # remove the bad assistant turn
+                    messages.append({
+                        "role": "user",
+                        "content": (
+                            "방금 너의 응답은 툴 호출 없이 작업 완료를 "
+                            "주장한 환각이었어. 사용자의 원래 요청을 처리하기 "
+                            "위해 반드시 적절한 툴을 호출해. 텍스트만 "
+                            "응답하면 안 돼."
+                        ),
+                    })
+                    force_tool_use = True
+                    final_text = ""  # reset so we don't accidentally return
+                    continue
                 break
 
             if response.stop_reason == "tool_use":
